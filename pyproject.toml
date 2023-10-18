@@ -22,8 +22,9 @@ managed = true
 dev-dependencies = []
 
 [tool.rye.scripts]
-list-config = "dynaconf -i github_rest_api.config.settings list"
-check-config = "dynaconf -i github_rest_api.config.settings validate"
+list = "dynaconf -i github_rest_api.config.settings list"
+validate = "dynaconf -i github_rest_api.config.settings validate"
+get = { cmd = "dynaconf -i github_rest_api.config.settings get", env = { VALUE = "$1" } }
 
 [tool.hatch.metadata]
 allow-direct-references = true
