@@ -26,12 +26,9 @@ def rich_output(input_str: str, format_str: str):
 
 
 def get_repository(name: str, org: str):
+    url = f"{GITHUB_URL}/repos/{org if org else GITHUB_USER}/{name}"
+
     try:
-        url = (
-            f"{GITHUB_URL}/repos/{org}/{name}"
-            if org
-            else f"{GITHUB_URL}/repos/{GITHUB_USER}/{name}"
-        )
         req = requests.get(url, headers=HEADERS)
         req.raise_for_status()
         source_repo = json.loads(req.text)
@@ -92,12 +89,9 @@ def create_repository(name: str, visibility: str, org: str):
 
 
 def delete_repository(name: str, org: str):
+    url = f"{GITHUB_URL}/repos/{org if org else GITHUB_USER}/{name}"
+
     try:
-        url = (
-            f"{GITHUB_URL}/repos/{org}/{name}"
-            if org
-            else f"{GITHUB_URL}/repos/{GITHUB_USER}/{name}"
-        )
         req = requests.delete(url, headers=HEADERS)
         req.raise_for_status()
         rich_output(
@@ -123,20 +117,29 @@ def delete_repository(name: str, org: str):
             )
 
 
-def list_repositories(page: int, property: str, role: str):
+def list_repositories(page: int, property: str, role: str, org: str):
+    params = {"per_page": page, "sort": property, "type": role}
+
+    if org:
+        if role in ["private", "forks", "sources", "member"]:
+            params["type"] = role
+        else:
+            params["type"] = "all"
+
     try:
-        params = {"per_page": page, "sort": property, "type": role}
-        req = requests.get(f"{GITHUB_URL}/user/repos", headers=HEADERS, params=params)
+        url = f"{GITHUB_URL}/orgs/{org}/repos" if org else f"{GITHUB_URL}/user/repos"
+        req = requests.get(url, headers=HEADERS, params=params)
         req.raise_for_status()
         repositories = json.loads(req.text)
         repository_full_name = [repo["full_name"] for repo in repositories]
-        for repos in repository_full_name:
-            rich_output(f"- {repos}", format_str="blink bold green")
+        rich_output(
+            "\n".join([f"- {repos}" for repos in repository_full_name]),
+            format_str="blink bold green",
+        )
         rich_output(
             f"\nTotal repositories: {len(repository_full_name)}",
             format_str="blink bold green",
         )
-
     except requests.exceptions.HTTPError as e:
         if e.response.status_code == 401:
             rich_output(
@@ -145,7 +148,8 @@ def list_repositories(page: int, property: str, role: str):
             )
         else:
             rich_output(
-                f"Failed to list repositories for {GITHUB_USER} Status code: {e.response.status_code}",
+                f"Failed to list repositories for {org or GITHUB_USER}"
+                + f"Status code: {e.response.status_code}",
                 format_str="blink bold red",
             )
 
@@ -153,14 +157,12 @@ def list_repositories(page: int, property: str, role: str):
 def dependabot_security(name: str, org: str, enabled: bool):
     is_enabled = bool(enabled)
 
+    url = f"{GITHUB_URL}/repos/{org if org else GITHUB_USER}/{name}"
+    dependabot_endpoints = ["vulnerability-alerts", "automated-security-fixes"]
+
     try:
-        url = (
-            f"{GITHUB_URL}/repos/{org}/{name}"
-            if org
-            else f"{GITHUB_URL}/repos/{GITHUB_USER}/{name}"
-        )
         if is_enabled:
-            for endpoint in ["vulnerability-alerts", "automated-security-fixes"]:
+            for endpoint in dependabot_endpoints:
                 req = requests.put(f"{url}/{endpoint}", headers=HEADERS)
                 req.raise_for_status()
             rich_output(
@@ -179,12 +181,9 @@ def dependabot_security(name: str, org: str, enabled: bool):
 
 
 def deployment_environment(name: str, env: str, org: str):
+    url = f"{GITHUB_URL}/repos/{org if org else GITHUB_USER}/{name}/environments/{env}"
+
     try:
-        url = (
-            f"{GITHUB_URL}/repos/{org}/{name}/environments/{env}"
-            if org
-            else f"{GITHUB_URL}/repos/{GITHUB_USER}/{name}/environments/{env}"
-        )
         req = requests.put(url, headers=HEADERS)
         req.raise_for_status()
         rich_output(
@@ -237,6 +236,7 @@ def cli():
         "-r",
         "--role",
         required=False,
+        default="owner",
         dest="role",
         help="List repositories by role",
     )
@@ -244,7 +244,7 @@ def cli():
         "-p",
         "--page",
         required=False,
-        default=50,
+        default=30,
         type=int,
         dest="page",
         help="The number of results",
@@ -256,6 +256,9 @@ def cli():
         default="pushed",
         dest="sort",
         help="List repositories sorted by",
+    )
+    list_repo_parser.add_argument(
+        "-o", "--org", help="The organization name", required=False, dest="org"
     )
 
     # Subparser for "create-repository" function
@@ -276,7 +279,7 @@ def cli():
         required=False,
         default="public",
         dest="visibility",
-        help="Whether the repository is private",
+        help="The visibility of the repository",
     )
     create_repo_parser.add_argument(
         "-o",
@@ -373,7 +376,7 @@ def cli():
     if command == "get-repo":
         return get_repository(args.name, args.org)
     if command == "list-repo":
-        return list_repositories(args.page, args.sort, args.role)
+        return list_repositories(args.page, args.sort, args.role, args.org)
     if command == "create-repo":
         return create_repository(args.name, args.visibility, args.org)
     if command == "delete-repo":

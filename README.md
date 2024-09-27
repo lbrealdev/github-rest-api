@@ -1,5 +1,7 @@
 # GitHub REST API
 
+[![CodeFactor](https://www.codefactor.io/repository/github/lbrealdev/github-rest-api/badge)](https://www.codefactor.io/repository/github/lbrealdev/github-rest-api)
+
 ### Use
 
 This python cli app uses dynaconf to manage secrets and environment variables.
