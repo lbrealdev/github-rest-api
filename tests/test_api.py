@@ -1,6 +1,5 @@
 from github_rest_cli import api
 
-
 GET_HEADERS_FUNCTION = "github_rest_cli.api.get_headers"
 FETCH_USER_FUNCTION = "github_rest_cli.api.fetch_user"
 REQUEST_HANDLER_FUNCTION = "github_rest_cli.api.request_with_handling"
@@ -60,6 +59,7 @@ SAMPLE_REPO = {
     "fork": False,
     "archived": False,
     "disabled": False,
+    "is_template": False,
 }
 
 
@@ -98,6 +98,7 @@ def test_get_repository_table_format(mocker):
     assert "test-user" in table_text
     assert "default_branch" in table_text
     assert "main" in table_text
+    assert "is_template" in table_text
     assert not table_text.strip().startswith("{")
 
 
@@ -174,7 +175,7 @@ def test_list_repositories_fetch_all_follows_link_headers(mocker):
     result = api.list_repositories(20, 5, "pushed", None, "json", fetch_all=True)
 
     assert request_mock.call_count == 2
-    first_args, first_kwargs = request_mock.call_args_list[0]
+    _, first_kwargs = request_mock.call_args_list[0]
     assert first_kwargs["params"]["page"] == 1
     assert first_kwargs["params"]["per_page"] == 20
 

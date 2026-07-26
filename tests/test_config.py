@@ -1,9 +1,9 @@
 import inspect
 
-from github_rest_cli import config as config_module
-from github_rest_cli.config import settings, DEFAULT_API_URL
-from github_rest_cli.globals import get_api_url
 from github_rest_cli import api
+from github_rest_cli import config as config_module
+from github_rest_cli.config import DEFAULT_API_URL, settings
+from github_rest_cli.globals import get_api_url
 
 
 def test_settings_files_are_basenames():

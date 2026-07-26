@@ -5,7 +5,6 @@ from github_rest_cli.utils import (
     project_repo_summary,
 )
 
-
 SAMPLE_REPO = {
     "name": "test-repo",
     "full_name": "test-user/test-repo",
@@ -22,6 +21,7 @@ SAMPLE_REPO = {
     "fork": False,
     "archived": False,
     "disabled": False,
+    "is_template": True,
 }
 
 
@@ -54,9 +54,11 @@ def test_project_repo_detail_ordered_fields():
         "fork",
         "archived",
         "disabled",
+        "is_template",
     ]
     assert dict(pairs)["topics"] == "cli, github"
     assert dict(pairs)["fork"] == "false"
+    assert dict(pairs)["is_template"] == "true"
 
 
 def test_project_repo_detail_null_and_missing_fields():

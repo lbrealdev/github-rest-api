@@ -1,13 +1,15 @@
 import argparse
 from argparse import Namespace
 from importlib.metadata import version
+
 from github_rest_cli.api import (
-    get_repository,
     create_repository,
     delete_repository,
-    list_repositories,
     dependabot_security,
     deployment_environment,
+    get_repository,
+    list_repositories,
+    update_repository,
 )
 
 
@@ -66,7 +68,28 @@ def run_list_repo(args: Namespace) -> None:
 
 
 def run_create_repo(args: Namespace) -> None:
-    create_repository(args.name, args.visibility, args.org, args.empty)
+    create_repository(
+        args.name,
+        args.visibility,
+        args.org,
+        empty=args.empty,
+        template=args.template,
+        include_all_branches=args.include_all_branches,
+    )
+
+
+def run_update_repo(args: Namespace) -> None:
+    update_repository(
+        args.name,
+        args.org,
+        new_name=args.new_name,
+        description=args.description,
+        homepage=args.homepage,
+        visibility=args.visibility,
+        default_branch=args.default_branch,
+        archived=args.archived,
+        is_template=args.is_template,
+    )
 
 
 def run_delete_repo(args: Namespace) -> None:
@@ -123,7 +146,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     subparsers = parser.add_subparsers(help="GitHub REST API commands", dest="command")
 
-    # repo {get,list,create,delete}
+    # repo {get,list,create,update,delete}
     repo_parser = _subcommand(subparsers, "repo", help="Manage repositories")
     repo_subparsers = repo_parser.add_subparsers(
         help="Repository commands", dest="repo_command"
@@ -219,7 +242,112 @@ def build_parser() -> argparse.ArgumentParser:
         dest="empty",
         help="Create an empty repository",
     )
+    create_repo_parser.add_argument(
+        "--template",
+        metavar="OWNER/REPO",
+        required=False,
+        default=None,
+        dest="template",
+        help="Create from a template repository (OWNER/REPO)",
+    )
+    create_repo_parser.add_argument(
+        "--include-all-branches",
+        required=False,
+        action="store_true",
+        dest="include_all_branches",
+        help="Include all branches from the template repository",
+    )
     create_repo_parser.set_defaults(visibility="public", func=run_create_repo)
+
+    update_repo_parser = _subcommand(
+        repo_subparsers,
+        "update",
+        help="Update an existing repository",
+    )
+    _add_repo_name_args(update_repo_parser)
+    update_repo_parser.add_argument(
+        "--new-name",
+        required=False,
+        default=None,
+        dest="new_name",
+        help="Rename the repository",
+    )
+    update_repo_parser.add_argument(
+        "--description",
+        required=False,
+        default=None,
+        dest="description",
+        help="Short description of the repository",
+    )
+    update_repo_parser.add_argument(
+        "--homepage",
+        required=False,
+        default=None,
+        dest="homepage",
+        help="Homepage URL for the repository",
+    )
+    update_visibility = update_repo_parser.add_mutually_exclusive_group()
+    update_visibility.add_argument(
+        "--public",
+        action="store_const",
+        const="public",
+        dest="visibility",
+        help="Make the repository public",
+    )
+    update_visibility.add_argument(
+        "--private",
+        action="store_const",
+        const="private",
+        dest="visibility",
+        help="Make the repository private",
+    )
+    update_visibility.add_argument(
+        "--internal",
+        action="store_const",
+        const="internal",
+        dest="visibility",
+        help="Make the repository internal",
+    )
+    update_repo_parser.add_argument(
+        "--default-branch",
+        required=False,
+        default=None,
+        dest="default_branch",
+        help="Default branch name",
+    )
+    update_archived = update_repo_parser.add_mutually_exclusive_group()
+    update_archived.add_argument(
+        "--archived",
+        action="store_const",
+        const=True,
+        dest="archived",
+        help="Archive the repository",
+    )
+    update_archived.add_argument(
+        "--unarchived",
+        action="store_const",
+        const=False,
+        dest="archived",
+        help="Unarchive the repository",
+    )
+    update_template = update_repo_parser.add_mutually_exclusive_group()
+    update_template.add_argument(
+        "--as-template",
+        action="store_const",
+        const=True,
+        dest="is_template",
+        help="Mark the repository as a template",
+    )
+    update_template.add_argument(
+        "--no-template",
+        action="store_const",
+        const=False,
+        dest="is_template",
+        help="Unmark the repository as a template",
+    )
+    update_repo_parser.set_defaults(
+        visibility=None, archived=None, is_template=None, func=run_update_repo
+    )
 
     delete_repo_parser = _subcommand(
         repo_subparsers,

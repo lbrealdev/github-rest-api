@@ -1,7 +1,7 @@
 import pytest
-from github_rest_cli.parser import build_parser
-from github_rest_cli import api
 
+from github_rest_cli import api
+from github_rest_cli.parser import build_parser
 
 GET_HEADERS_FUNCTION = "github_rest_cli.api.get_headers"
 FETCH_USER_FUNCTION = "github_rest_cli.api.fetch_user"
