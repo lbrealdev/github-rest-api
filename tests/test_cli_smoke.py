@@ -1,5 +1,6 @@
 import pytest
-from github_rest_cli.main import cli, __version__
+
+from github_rest_cli.main import __version__, cli
 from github_rest_cli.parser import build_parser
 
 

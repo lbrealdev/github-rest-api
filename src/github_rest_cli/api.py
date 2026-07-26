@@ -1,10 +1,11 @@
 import requests
+
 from github_rest_cli.globals import get_api_url, get_headers
-from github_rest_cli.utils import rich_output, format_repo_get, format_repo_list
+from github_rest_cli.utils import format_repo_get, format_repo_list, rich_output
 
 
 def request_with_handling(
-    method, url, success_msg: str = None, error_msg: str = None, **kwargs
+    method, url, success_msg: str | None = None, error_msg: str | None = None, **kwargs
 ):
     try:
         response = requests.request(method, url, **kwargs)
@@ -50,7 +51,7 @@ def fetch_user() -> str:
     return None
 
 
-def get_repository(name: str, org: str = None, output_format: str = "table"):
+def get_repository(name: str, org: str | None = None, output_format: str = "table"):
     owner = org if org else fetch_user()
     headers = get_headers()
     url = build_url("repos", owner, name)
@@ -137,9 +138,9 @@ def _parse_template_ref(template: str) -> tuple[str, str] | None:
 def create_repository(
     name: str,
     visibility: str,
-    org: str = None,
+    org: str | None = None,
     empty: bool = False,
-    template: str = None,
+    template: str | None = None,
     include_all_branches: bool = False,
 ):
     if template and empty:
@@ -198,7 +199,7 @@ def _create_repository_from_template(
     name: str,
     visibility: str,
     *,
-    org: str = None,
+    org: str | None = None,
     template: str,
     include_all_branches: bool = False,
 ):
@@ -251,15 +252,15 @@ def _create_repository_from_template(
 
 def update_repository(
     name: str,
-    org: str = None,
+    org: str | None = None,
     *,
-    new_name: str = None,
-    description: str = None,
-    homepage: str = None,
-    visibility: str = None,
-    default_branch: str = None,
-    archived: bool = None,
-    is_template: bool = None,
+    new_name: str | None = None,
+    description: str | None = None,
+    homepage: str | None = None,
+    visibility: str | None = None,
+    default_branch: str | None = None,
+    archived: bool | None = None,
+    is_template: bool | None = None,
 ):
     payload = {}
     if new_name is not None:
@@ -310,7 +311,7 @@ def update_repository(
     )
 
 
-def delete_repository(name: str, org: str = None):
+def delete_repository(name: str, org: str | None = None):
     owner = org if org else fetch_user()
     headers = get_headers()
     url = build_url("repos", owner, name)
@@ -327,7 +328,7 @@ def delete_repository(name: str, org: str = None):
     )
 
 
-def dependabot_security(name: str, enabled: bool, org: str = None):
+def dependabot_security(name: str, enabled: bool, org: str | None = None):
     is_enabled = bool(enabled)
 
     owner = org if org else fetch_user()
@@ -358,7 +359,7 @@ def dependabot_security(name: str, enabled: bool, org: str = None):
         )
 
 
-def deployment_environment(name: str, env: str, org: str = None):
+def deployment_environment(name: str, env: str, org: str | None = None):
     owner = org if org else fetch_user()
     headers = get_headers()
     url = build_url("repos", owner, name, "environments", env)

@@ -1,8 +1,7 @@
-from importlib.metadata import version
 import logging
+from importlib.metadata import version
 
 from github_rest_cli.parser import build_parser
-
 
 __version__ = version("github-rest-cli")
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")

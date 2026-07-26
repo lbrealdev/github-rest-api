@@ -1,7 +1,8 @@
-from github_rest_cli.config import settings, AUTH_TOKEN_VALIDATOR, DEFAULT_API_URL
-from dynaconf.base import ValidationError
 import logging
 
+from dynaconf.base import ValidationError
+
+from github_rest_cli.config import AUTH_TOKEN_VALIDATOR, DEFAULT_API_URL, settings
 
 logger = logging.getLogger(__name__)
 

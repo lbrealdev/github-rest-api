@@ -1,6 +1,5 @@
 from github_rest_cli import api
 
-
 GET_HEADERS_FUNCTION = "github_rest_cli.api.get_headers"
 FETCH_USER_FUNCTION = "github_rest_cli.api.fetch_user"
 REQUEST_HANDLER_FUNCTION = "github_rest_cli.api.request_with_handling"

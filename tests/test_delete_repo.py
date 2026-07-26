@@ -1,7 +1,6 @@
+from github_rest_cli import api
 from github_rest_cli.main import cli
 from github_rest_cli.parser import build_parser, confirm_delete_repository
-from github_rest_cli import api
-
 
 GET_HEADERS_FUNCTION = "github_rest_cli.api.get_headers"
 FETCH_USER_FUNCTION = "github_rest_cli.api.fetch_user"

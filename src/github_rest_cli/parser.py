@@ -1,14 +1,15 @@
 import argparse
 from argparse import Namespace
 from importlib.metadata import version
+
 from github_rest_cli.api import (
-    get_repository,
     create_repository,
-    update_repository,
     delete_repository,
-    list_repositories,
     dependabot_security,
     deployment_environment,
+    get_repository,
+    list_repositories,
+    update_repository,
 )
 
 
