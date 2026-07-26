@@ -69,7 +69,7 @@ github-rest-cli repo get --name my-repo --format json
 | `-o` / `--org` | No | authenticated user | Organization owner |
 | `-f` / `--format` | No | `table` | Output format: `table` or `json` |
 
-Table mode shows a key/value detail view (`Field` | `Value`) with curated fields: `name`, `full_name`, `owner`, `description`, `visibility`, `default_branch`, `language`, `topics`, `html_url`, `created_at`, `updated_at`, `pushed_at`, `fork`, `archived`, `disabled`.
+Table mode shows a key/value detail view (`Field` | `Value`) with curated fields: `name`, `full_name`, `owner`, `description`, `visibility`, `default_branch`, `language`, `topics`, `html_url`, `created_at`, `updated_at`, `pushed_at`, `fork`, `archived`, `disabled`, `is_template`.
 
 JSON mode returns the full raw GitHub repository object from the API.
 

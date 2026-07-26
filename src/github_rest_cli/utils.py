@@ -1,5 +1,6 @@
-from rich import print as rprint
 import json
+
+from rich import print as rprint
 
 REPO_SUMMARY_COLUMNS = ["name", "owner", "url", "visibility"]
 
@@ -19,6 +20,7 @@ REPO_DETAIL_FIELDS = [
     "fork",
     "archived",
     "disabled",
+    "is_template",
 ]
 
 
@@ -80,6 +82,7 @@ def project_repo_detail(repo: dict) -> list[tuple[str, str]]:
         "fork": repo.get("fork"),
         "archived": repo.get("archived"),
         "disabled": repo.get("disabled"),
+        "is_template": repo.get("is_template"),
     }
     return [(field, _stringify(values[field])) for field in REPO_DETAIL_FIELDS]
 
