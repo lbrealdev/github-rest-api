@@ -3,9 +3,9 @@ import pytest
 from github_rest_cli import api
 from github_rest_cli.parser import build_parser
 
-GET_HEADERS_FUNCTION = "github_rest_cli.api.get_headers"
-FETCH_USER_FUNCTION = "github_rest_cli.api.fetch_user"
-REQUEST_HANDLER_FUNCTION = "github_rest_cli.api.request_with_handling"
+GET_HEADERS_FUNCTION = "github_rest_cli.api.base.get_headers"
+FETCH_USER_FUNCTION = "github_rest_cli.api.base.fetch_user"
+REQUEST_HANDLER_FUNCTION = "github_rest_cli.api.base.request_with_handling"
 
 
 def test_dependabot_enable_subcommand():

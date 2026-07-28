@@ -213,3 +213,53 @@ def test_repo_list_pagination_flags():
     assert args.per_page == 50
     assert args.page == 3
     assert args.fetch_all is True
+
+
+def test_repo_list_org_defaults_to_none():
+    parser = build_parser()
+    args = parser.parse_args(["repo", "list"])
+
+    assert args.org is None
+
+
+def test_repo_list_org_flag():
+    parser = build_parser()
+    args = parser.parse_args(
+        [
+            "repo",
+            "list",
+            "--org",
+            "my-org",
+            "--per-page",
+            "50",
+            "--all",
+            "--format",
+            "json",
+        ]
+    )
+
+    assert args.org == "my-org"
+    assert args.per_page == 50
+    assert args.fetch_all is True
+    assert args.format == "json"
+
+
+def test_repo_list_has_no_name_flag(capsys):
+    parser = build_parser()
+
+    with pytest.raises(SystemExit) as exc_info:
+        parser.parse_args(["repo", "list", "--name", "my-repo"])
+
+    assert exc_info.value.code == 2
+
+
+def test_repo_list_org_is_passed_to_api(mocker):
+    list_mock = mocker.patch(
+        "github_rest_cli.handlers.repos.list_repositories",
+        return_value=None,
+    )
+    mocker.patch("sys.argv", ["github-rest-cli", "repo", "list", "--org", "my-org"])
+
+    cli()
+
+    assert list_mock.call_args.kwargs["org"] == "my-org"

@@ -23,6 +23,26 @@ REPO_DETAIL_FIELDS = [
     "is_template",
 ]
 
+ENVIRONMENT_SUMMARY_COLUMNS = [
+    "name",
+    "id",
+    "protection_rules",
+    "created_at",
+    "updated_at",
+]
+
+ENVIRONMENT_DETAIL_FIELDS = [
+    "name",
+    "id",
+    "node_id",
+    "url",
+    "html_url",
+    "created_at",
+    "updated_at",
+    "protection_rules",
+    "deployment_branch_policy",
+]
+
 
 def to_json(data) -> str:
     return json.dumps(data, indent=2)
@@ -87,6 +107,53 @@ def project_repo_detail(repo: dict) -> list[tuple[str, str]]:
     return [(field, _stringify(values[field])) for field in REPO_DETAIL_FIELDS]
 
 
+def _describe_protection_rules(rules) -> str:
+    return ", ".join(rule.get("type", "") for rule in rules or [])
+
+
+def _describe_branch_policy(policy) -> str:
+    """Summarise the deployment_branch_policy object as its enabled keys."""
+    if not policy:
+        return ""
+    enabled = [
+        key
+        for key in ("protected_branches", "custom_branch_policies")
+        if policy.get(key)
+    ]
+    return ", ".join(enabled)
+
+
+def project_environment_summary(environment: dict) -> dict:
+    return {
+        "name": environment.get("name"),
+        "id": environment.get("id"),
+        "protection_rules": _describe_protection_rules(
+            environment.get("protection_rules")
+        ),
+        "created_at": environment.get("created_at"),
+        "updated_at": environment.get("updated_at"),
+    }
+
+
+def project_environment_detail(environment: dict) -> list[tuple[str, str]]:
+    values = {
+        "name": environment.get("name"),
+        "id": environment.get("id"),
+        "node_id": environment.get("node_id"),
+        "url": environment.get("url"),
+        "html_url": environment.get("html_url"),
+        "created_at": environment.get("created_at"),
+        "updated_at": environment.get("updated_at"),
+        "protection_rules": _describe_protection_rules(
+            environment.get("protection_rules")
+        ),
+        "deployment_branch_policy": _describe_branch_policy(
+            environment.get("deployment_branch_policy")
+        ),
+    }
+    return [(field, _stringify(values[field])) for field in ENVIRONMENT_DETAIL_FIELDS]
+
+
 def format_repo_list(repos, output_format: str = "table"):
     summaries = [project_repo_summary(repo) for repo in repos]
 
@@ -103,6 +170,29 @@ def format_repo_get(repo, output_format: str = "table"):
 
     pairs = project_repo_detail(repo)
     return to_key_value_table(pairs, title="GitHub Repository")
+
+
+def format_environment_list(payload, output_format: str = "table"):
+    if output_format == "json":
+        return to_json(payload)
+
+    environments = payload.get("environments") or []
+    summaries = [project_environment_summary(env) for env in environments]
+    rows = [
+        [_stringify(s[column]) for column in ENVIRONMENT_SUMMARY_COLUMNS]
+        for s in summaries
+    ]
+    return to_table(
+        rows, columns=ENVIRONMENT_SUMMARY_COLUMNS, title="GitHub Environments"
+    )
+
+
+def format_environment_get(environment, output_format: str = "table"):
+    if output_format == "json":
+        return to_json(environment)
+
+    pairs = project_environment_detail(environment)
+    return to_key_value_table(pairs, title="GitHub Environment")
 
 
 def rich_output(message: str, format_str: str = "bold green"):

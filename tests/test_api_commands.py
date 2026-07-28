@@ -1,8 +1,8 @@
 from github_rest_cli import api
 
-GET_HEADERS_FUNCTION = "github_rest_cli.api.get_headers"
-FETCH_USER_FUNCTION = "github_rest_cli.api.fetch_user"
-REQUEST_HANDLER_FUNCTION = "github_rest_cli.api.request_with_handling"
+GET_HEADERS_FUNCTION = "github_rest_cli.api.base.get_headers"
+FETCH_USER_FUNCTION = "github_rest_cli.api.base.fetch_user"
+REQUEST_HANDLER_FUNCTION = "github_rest_cli.api.base.request_with_handling"
 
 
 def test_delete_repository(mocker):
@@ -115,7 +115,7 @@ def test_update_repository_org(mocker):
 
 
 def test_update_repository_requires_changes(mocker):
-    output = mocker.patch("github_rest_cli.api.rich_output")
+    output = mocker.patch("github_rest_cli.api.repos.rich_output")
     request_mock = mocker.patch(REQUEST_HANDLER_FUNCTION)
 
     result = api.update_repository("my-repo")
@@ -202,7 +202,7 @@ def test_create_repository_from_template_org(mocker):
 
 
 def test_create_repository_template_rejects_empty(mocker):
-    output = mocker.patch("github_rest_cli.api.rich_output")
+    output = mocker.patch("github_rest_cli.api.repos.rich_output")
     request_mock = mocker.patch(REQUEST_HANDLER_FUNCTION)
 
     result = api.create_repository(
@@ -219,7 +219,7 @@ def test_create_repository_template_rejects_empty(mocker):
 
 
 def test_create_repository_template_rejects_internal(mocker):
-    output = mocker.patch("github_rest_cli.api.rich_output")
+    output = mocker.patch("github_rest_cli.api.repos.rich_output")
     request_mock = mocker.patch(REQUEST_HANDLER_FUNCTION)
 
     result = api.create_repository(
@@ -234,7 +234,7 @@ def test_create_repository_template_rejects_internal(mocker):
 
 
 def test_create_repository_template_invalid_ref(mocker):
-    output = mocker.patch("github_rest_cli.api.rich_output")
+    output = mocker.patch("github_rest_cli.api.repos.rich_output")
     request_mock = mocker.patch(REQUEST_HANDLER_FUNCTION)
 
     result = api.create_repository("my-app", "public", template="not-a-ref")
@@ -245,7 +245,7 @@ def test_create_repository_template_invalid_ref(mocker):
 
 
 def test_create_repository_include_all_branches_requires_template(mocker):
-    output = mocker.patch("github_rest_cli.api.rich_output")
+    output = mocker.patch("github_rest_cli.api.repos.rich_output")
     request_mock = mocker.patch(REQUEST_HANDLER_FUNCTION)
 
     result = api.create_repository(
