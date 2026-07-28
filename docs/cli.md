@@ -26,7 +26,7 @@ github-rest-cli --version
 | --- | --- |
 | `repo` | Get, list, create, update, and delete repositories |
 | `dependabot` | Enable or disable Dependabot security updates |
-| `environment` | Create deployment environments |
+| `environment` | Create, list, get, and delete deployment environments |
 
 ```shell
 github-rest-cli repo --help
@@ -40,6 +40,7 @@ github-rest-cli environment --help
 | --- | --- | --- |
 | `repo get` | `GET /repos/{owner}/{repo}` | [Get a repository](https://docs.github.com/en/rest/repos/repos?apiVersion=2026-03-10#get-a-repository) |
 | `repo list` | `GET /user/repos` | [List repositories for the authenticated user](https://docs.github.com/en/rest/repos/repos?apiVersion=2026-03-10#list-repositories-for-the-authenticated-user) |
+| `repo list --org` | `GET /orgs/{org}/repos` | [List organization repositories](https://docs.github.com/en/rest/repos/repos?apiVersion=2026-03-10#list-organization-repositories) |
 | `repo create` (user) | `POST /user/repos` | [Create a repository for the authenticated user](https://docs.github.com/en/rest/repos/repos?apiVersion=2026-03-10#create-a-repository-for-the-authenticated-user) |
 | `repo create` (org) | `POST /orgs/{org}/repos` | [Create an organization repository](https://docs.github.com/en/rest/repos/repos?apiVersion=2026-03-10#create-an-organization-repository) |
 | `repo create` (template) | `POST /repos/{template_owner}/{template_repo}/generate` | [Create a repository using a template](https://docs.github.com/en/rest/repos/repos?apiVersion=2026-03-10#create-a-repository-using-a-template) |
@@ -48,6 +49,9 @@ github-rest-cli environment --help
 | `dependabot enable` | Dependabot security updates | [Enable Dependabot security updates](https://docs.github.com/en/rest/repos/repos?apiVersion=2026-03-10#enable-dependabot-security-updates) |
 | `dependabot disable` | Dependabot security updates | [Disable Dependabot security updates](https://docs.github.com/en/rest/repos/repos?apiVersion=2026-03-10#disable-dependabot-security-updates) |
 | `environment create` | `PUT /repos/{owner}/{repo}/environments/{environment_name}` | [Create or update an environment](https://docs.github.com/en/rest/deployments/environments?apiVersion=2026-03-10#create-or-update-an-environment) |
+| `environment list` | `GET /repos/{owner}/{repo}/environments` | [List environments](https://docs.github.com/en/rest/deployments/environments?apiVersion=2026-03-10#list-environments) |
+| `environment get` | `GET /repos/{owner}/{repo}/environments/{environment_name}` | [Get an environment](https://docs.github.com/en/rest/deployments/environments?apiVersion=2026-03-10#get-an-environment) |
+| `environment delete` | `DELETE /repos/{owner}/{repo}/environments/{environment_name}` | [Delete an environment](https://docs.github.com/en/rest/deployments/environments?apiVersion=2026-03-10#delete-an-environment) |
 
 ## `repo`
 
@@ -75,11 +79,14 @@ JSON mode returns the full raw GitHub repository object from the API.
 
 ### `repo list`
 
-List repositories for the authenticated user.
+List repositories for the authenticated user, or for an organization with `--org`.
 
-**API:** `GET /user/repos` — [List repositories for the authenticated user](https://docs.github.com/en/rest/repos/repos?apiVersion=2026-03-10#list-repositories-for-the-authenticated-user)
+**API:**
 
-`--per-page` and `--page` map to GitHub's `per_page` and `page` query parameters. `--all` follows [Link-header pagination](https://docs.github.com/en/rest/using-the-rest-api/using-pagination-in-the-rest-api?apiVersion=2026-03-10).
+- Authenticated user: `GET /user/repos` — [List repositories for the authenticated user](https://docs.github.com/en/rest/repos/repos?apiVersion=2026-03-10#list-repositories-for-the-authenticated-user)
+- Organization (`--org`): `GET /orgs/{org}/repos` — [List organization repositories](https://docs.github.com/en/rest/repos/repos?apiVersion=2026-03-10#list-organization-repositories)
+
+`--per-page` and `--page` map to GitHub's `per_page` and `page` query parameters. `--all` follows [Link-header pagination](https://docs.github.com/en/rest/using-the-rest-api/using-pagination-in-the-rest-api?apiVersion=2026-03-10). All pagination, sorting, and output flags work the same for both endpoints.
 
 ```shell
 github-rest-cli repo list
@@ -87,16 +94,21 @@ github-rest-cli repo list --per-page 50 --sort pushed
 github-rest-cli repo list --page 2 --per-page 30
 github-rest-cli repo list --all --format json
 github-rest-cli repo list --role owner --format json
+github-rest-cli repo list --org my-org
+github-rest-cli repo list --org my-org --per-page 50 --all --format json
 ```
 
 | Flag | Required | Default | Description |
 | --- | --- | --- | --- |
+| `-o` / `--org` | No | authenticated user | List repositories owned by an organization |
 | `--per-page` | No | `20` | Results per page (`per_page`, max 100) |
 | `-p` / `--page` | No | `1` | Page number to fetch (ignored with `--all`) |
 | `--all` | No | off | Fetch every page by following `Link` headers |
 | `-s` / `--sort` | No | `pushed` | Sort field (e.g. `pushed`, `updated`, `created`) |
-| `-r` / `--role` | No | unset | Filter by affiliation/role |
+| `-r` / `--role` | No | unset | Filter by affiliation/role (`type` query parameter) |
 | `-f` / `--format` | No | `table` | Output format: `table` or `json` |
+
+`--role` maps to GitHub's `type` parameter, whose accepted values differ per endpoint: `all`, `owner`, `public`, `private`, `member` for the user endpoint, and `all`, `public`, `private`, `forks`, `sources`, `member` for the organization endpoint.
 
 `--format` only changes presentation. Table and JSON use the same repository set and the same summary fields: `name`, `owner`, `url`, `visibility`. With `--all`, that set is the concatenated result of every page.
 
@@ -231,28 +243,84 @@ github-rest-cli environment create --name my-repo --env staging --org my-org
 | `-e` / `--env` | Yes | — | Environment name |
 | `-o` / `--org` | No | authenticated user | Organization owner |
 
+### `environment list`
+
+List the deployment environments of a repository.
+
+**API:** `GET /repos/{owner}/{repo}/environments` — [List environments](https://docs.github.com/en/rest/deployments/environments?apiVersion=2026-03-10#list-environments)
+
+```shell
+github-rest-cli environment list --name my-repo
+github-rest-cli environment list --name my-repo --org my-org
+github-rest-cli environment list --name my-repo --per-page 50 --page 2
+github-rest-cli environment list --name my-repo --format json
+```
+
+| Flag | Required | Default | Description |
+| --- | --- | --- | --- |
+| `-n` / `--name` | Yes | — | Repository name |
+| `-o` / `--org` | No | authenticated user | Organization owner |
+| `--per-page` | No | `20` | Results per page (`per_page`, max 100) |
+| `-p` / `--page` | No | `1` | Page number to fetch |
+| `-f` / `--format` | No | `table` | Output format: `table` or `json` |
+
+Table mode shows the summary fields `name`, `id`, `protection_rules`, `created_at`, `updated_at`, where `protection_rules` lists the configured rule types. JSON mode returns the full API payload, including `total_count`.
+
+### `environment get`
+
+Fetch details for one deployment environment.
+
+**API:** `GET /repos/{owner}/{repo}/environments/{environment_name}` — [Get an environment](https://docs.github.com/en/rest/deployments/environments?apiVersion=2026-03-10#get-an-environment)
+
+```shell
+github-rest-cli environment get --name my-repo --env production
+github-rest-cli environment get --name my-repo --env production --org my-org
+github-rest-cli environment get --name my-repo --env production --format json
+```
+
+| Flag | Required | Default | Description |
+| --- | --- | --- | --- |
+| `-n` / `--name` | Yes | — | Repository name |
+| `-e` / `--env` | Yes | — | Environment name |
+| `-o` / `--org` | No | authenticated user | Organization owner |
+| `-f` / `--format` | No | `table` | Output format: `table` or `json` |
+
+Table mode shows a key/value detail view (`Field` | `Value`) with the fields `name`, `id`, `node_id`, `url`, `html_url`, `created_at`, `updated_at`, `protection_rules`, `deployment_branch_policy`. JSON mode returns the full raw environment object.
+
+### `environment delete`
+
+Delete a deployment environment. Prompts for confirmation unless `--yes` is passed.
+
+**API:** `DELETE /repos/{owner}/{repo}/environments/{environment_name}` — [Delete an environment](https://docs.github.com/en/rest/deployments/environments?apiVersion=2026-03-10#delete-an-environment)
+
+```shell
+github-rest-cli environment delete --name my-repo --env production
+github-rest-cli environment delete --name my-repo --env production --org my-org
+github-rest-cli environment delete --name my-repo --env production --yes
+```
+
+| Flag | Required | Default | Description |
+| --- | --- | --- | --- |
+| `-n` / `--name` | Yes | — | Repository name |
+| `-e` / `--env` | Yes | — | Environment name |
+| `-o` / `--org` | No | authenticated user | Organization owner |
+| `-y` / `--yes` | No | off | Skip confirmation prompt |
+
+Deleting an environment also deletes any secrets and protection rules attached to it.
+
 ## Output format
 
-`repo get` and `repo list` support:
+`repo get`, `repo list`, `environment get`, and `environment list` support:
 
 - `table` (default) — PrettyTable display
 - `json` — JSON string suitable for piping or scripting
 
-For `repo get`, table is a curated key/value detail view; JSON is the full API payload.
+For `repo get` and `environment get`, table is a curated key/value detail view; JSON is the full API payload.
 For `repo list`, table and JSON both use the summary fields `name`, `owner`, `url`, `visibility`.
+For `environment list`, table uses summary fields while JSON is the full API payload.
 
 ```shell
 github-rest-cli repo list --format json
 github-rest-cli repo get --name my-repo --format table
+github-rest-cli environment list --name my-repo --format json
 ```
-
-## Related APIs (not wrapped yet)
-
-These GitHub REST endpoints are not exposed by the CLI today, but are candidates for future commands:
-
-| Capability | GitHub docs |
-| --- | --- |
-| List org repositories | [List organization repositories](https://docs.github.com/en/rest/repos/repos?apiVersion=2026-03-10#list-organization-repositories) |
-| List environments | [List environments](https://docs.github.com/en/rest/deployments/environments?apiVersion=2026-03-10#list-environments) |
-| Get environment | [Get an environment](https://docs.github.com/en/rest/deployments/environments?apiVersion=2026-03-10#get-an-environment) |
-| Delete environment | [Delete an environment](https://docs.github.com/en/rest/deployments/environments?apiVersion=2026-03-10#delete-an-environment) |

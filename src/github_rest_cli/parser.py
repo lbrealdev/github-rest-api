@@ -1,15 +1,17 @@
 import argparse
-from argparse import Namespace
 from importlib.metadata import version
 
-from github_rest_cli.api import (
-    create_repository,
-    delete_repository,
-    dependabot_security,
-    deployment_environment,
-    get_repository,
-    list_repositories,
-    update_repository,
+from github_rest_cli.handlers import (
+    run_create_repo,
+    run_delete_repo,
+    run_dependabot,
+    run_environment_create,
+    run_environment_delete,
+    run_environment_get,
+    run_environment_list,
+    run_get_repo,
+    run_list_repo,
+    run_update_repo,
 )
 
 
@@ -18,6 +20,12 @@ class _HelpFormatter(argparse.HelpFormatter):
 
     def __init__(self, prog: str) -> None:
         super().__init__(prog, max_help_position=40)
+
+
+def _add_org_arg(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "-o", "--org", help="The organization name", required=False, dest="org"
+    )
 
 
 def _add_repo_name_args(
@@ -30,8 +38,38 @@ def _add_repo_name_args(
         required=name_required,
         dest="name",
     )
+    _add_org_arg(parser)
+
+
+def _add_env_name_arg(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
-        "-o", "--org", help="The organization name", required=False, dest="org"
+        "-e",
+        "--env",
+        required=True,
+        dest="env",
+        help="Deployment environment name",
+    )
+
+
+def _add_pagination_args(
+    parser: argparse.ArgumentParser, *, page_help: str = "Page number to fetch"
+) -> None:
+    parser.add_argument(
+        "--per-page",
+        required=False,
+        default=20,
+        type=int,
+        dest="per_page",
+        help="Number of results per page (max 100)",
+    )
+    parser.add_argument(
+        "-p",
+        "--page",
+        required=False,
+        default=1,
+        type=int,
+        dest="page",
+        help=page_help,
     )
 
 
@@ -46,77 +84,6 @@ def _add_format_arg(parser: argparse.ArgumentParser) -> None:
         dest="format",
         help="Output format (table or json)",
     )
-
-
-def run_get_repo(args: Namespace) -> None:
-    repo = get_repository(args.name, args.org, args.format)
-    if repo is not None:
-        print(repo)  # noqa: T201
-
-
-def run_list_repo(args: Namespace) -> None:
-    repos = list_repositories(
-        args.per_page,
-        args.page,
-        args.sort,
-        args.role,
-        args.format,
-        fetch_all=args.fetch_all,
-    )
-    if repos is not None:
-        print(repos)  # noqa: T201
-
-
-def run_create_repo(args: Namespace) -> None:
-    create_repository(
-        args.name,
-        args.visibility,
-        args.org,
-        empty=args.empty,
-        template=args.template,
-        include_all_branches=args.include_all_branches,
-    )
-
-
-def run_update_repo(args: Namespace) -> None:
-    update_repository(
-        args.name,
-        args.org,
-        new_name=args.new_name,
-        description=args.description,
-        homepage=args.homepage,
-        visibility=args.visibility,
-        default_branch=args.default_branch,
-        archived=args.archived,
-        is_template=args.is_template,
-    )
-
-
-def run_delete_repo(args: Namespace) -> None:
-    if not confirm_delete_repository(args.name, args.org, yes=args.yes):
-        print("Aborted.")  # noqa: T201
-        return
-    delete_repository(args.name, args.org)
-
-
-def run_dependabot(args: Namespace) -> None:
-    dependabot_security(args.name, args.control, args.org)
-
-
-def run_environment_create(args: Namespace) -> None:
-    deployment_environment(args.name, args.env, args.org)
-
-
-def confirm_delete_repository(
-    name: str, org: str | None = None, *, yes: bool = False
-) -> bool:
-    """Return True if deletion should proceed."""
-    if yes:
-        return True
-
-    target = f"{org}/{name}" if org else name
-    answer = input(f"Delete repository '{target}'? This cannot be undone. [y/N] ")
-    return answer.strip().lower() in {"y", "yes"}
 
 
 def _subcommand(
@@ -165,6 +132,7 @@ def build_parser() -> argparse.ArgumentParser:
         "list",
         help="List your repositories",
     )
+    _add_org_arg(list_repo_parser)
     list_repo_parser.add_argument(
         "-r",
         "--role",
@@ -172,22 +140,8 @@ def build_parser() -> argparse.ArgumentParser:
         dest="role",
         help="List repositories by role",
     )
-    list_repo_parser.add_argument(
-        "--per-page",
-        required=False,
-        default=20,
-        type=int,
-        dest="per_page",
-        help="Number of results per page (max 100)",
-    )
-    list_repo_parser.add_argument(
-        "-p",
-        "--page",
-        required=False,
-        default=1,
-        type=int,
-        dest="page",
-        help="Page number to fetch (ignored with --all)",
+    _add_pagination_args(
+        list_repo_parser, page_help="Page number to fetch (ignored with --all)"
     )
     list_repo_parser.add_argument(
         "--all",
@@ -391,7 +345,7 @@ def build_parser() -> argparse.ArgumentParser:
     _add_repo_name_args(dependabot_disable_parser)
     dependabot_disable_parser.set_defaults(func=run_dependabot, control=False)
 
-    # environment create
+    # environment {create,list,get,delete}
     environment_parser = _subcommand(
         subparsers,
         "environment",
@@ -408,13 +362,43 @@ def build_parser() -> argparse.ArgumentParser:
         help="Create a deployment environment",
     )
     _add_repo_name_args(environment_create_parser)
-    environment_create_parser.add_argument(
-        "-e",
-        "--env",
-        required=True,
-        dest="env",
-        help="Deployment environment name",
-    )
+    _add_env_name_arg(environment_create_parser)
     environment_create_parser.set_defaults(func=run_environment_create)
+
+    environment_list_parser = _subcommand(
+        environment_subparsers,
+        "list",
+        help="List deployment environments",
+    )
+    _add_repo_name_args(environment_list_parser)
+    _add_pagination_args(environment_list_parser)
+    _add_format_arg(environment_list_parser)
+    environment_list_parser.set_defaults(func=run_environment_list)
+
+    environment_get_parser = _subcommand(
+        environment_subparsers,
+        "get",
+        help="Get a deployment environment's details",
+    )
+    _add_repo_name_args(environment_get_parser)
+    _add_env_name_arg(environment_get_parser)
+    _add_format_arg(environment_get_parser)
+    environment_get_parser.set_defaults(func=run_environment_get)
+
+    environment_delete_parser = _subcommand(
+        environment_subparsers,
+        "delete",
+        help="Delete a deployment environment",
+    )
+    _add_repo_name_args(environment_delete_parser)
+    _add_env_name_arg(environment_delete_parser)
+    environment_delete_parser.add_argument(
+        "-y",
+        "--yes",
+        action="store_true",
+        dest="yes",
+        help="Skip the confirmation prompt and delete immediately",
+    )
+    environment_delete_parser.set_defaults(func=run_environment_delete)
 
     return parser

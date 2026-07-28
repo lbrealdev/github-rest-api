@@ -1,10 +1,11 @@
 from github_rest_cli import api
+from github_rest_cli.handlers.repos import confirm_delete_repository
 from github_rest_cli.main import cli
-from github_rest_cli.parser import build_parser, confirm_delete_repository
+from github_rest_cli.parser import build_parser
 
-GET_HEADERS_FUNCTION = "github_rest_cli.api.get_headers"
-FETCH_USER_FUNCTION = "github_rest_cli.api.fetch_user"
-REQUEST_HANDLER_FUNCTION = "github_rest_cli.api.request_with_handling"
+GET_HEADERS_FUNCTION = "github_rest_cli.api.base.get_headers"
+FETCH_USER_FUNCTION = "github_rest_cli.api.base.fetch_user"
+REQUEST_HANDLER_FUNCTION = "github_rest_cli.api.base.request_with_handling"
 
 
 def test_delete_repo_yes_flag_parses():
@@ -25,30 +26,30 @@ def test_delete_repo_short_yes_flag_parses():
 
 
 def test_confirm_delete_skips_prompt_with_yes(mocker):
-    prompt = mocker.patch("github_rest_cli.parser.input")
+    prompt = mocker.patch("github_rest_cli.handlers.repos.input")
 
     assert confirm_delete_repository("my-repo", yes=True) is True
     prompt.assert_not_called()
 
 
 def test_confirm_delete_accepts_yes(mocker):
-    mocker.patch("github_rest_cli.parser.input", return_value="y")
+    mocker.patch("github_rest_cli.handlers.repos.input", return_value="y")
 
     assert confirm_delete_repository("my-repo", org="my-org") is True
 
 
 def test_confirm_delete_rejects_other_answers(mocker):
-    mocker.patch("github_rest_cli.parser.input", return_value="n")
+    mocker.patch("github_rest_cli.handlers.repos.input", return_value="n")
 
     assert confirm_delete_repository("my-repo") is False
 
 
 def test_cli_delete_repo_aborts_without_confirmation(mocker, capsys):
     mocker.patch(
-        "github_rest_cli.parser.confirm_delete_repository",
+        "github_rest_cli.handlers.repos.confirm_delete_repository",
         return_value=False,
     )
-    delete_mock = mocker.patch("github_rest_cli.parser.delete_repository")
+    delete_mock = mocker.patch("github_rest_cli.handlers.repos.delete_repository")
     mocker.patch(
         "sys.argv",
         ["github-rest-cli", "repo", "delete", "--name", "my-repo"],
@@ -61,8 +62,8 @@ def test_cli_delete_repo_aborts_without_confirmation(mocker, capsys):
 
 
 def test_cli_delete_repo_proceeds_with_yes(mocker):
-    delete_mock = mocker.patch("github_rest_cli.parser.delete_repository")
-    prompt = mocker.patch("github_rest_cli.parser.input")
+    delete_mock = mocker.patch("github_rest_cli.handlers.repos.delete_repository")
+    prompt = mocker.patch("github_rest_cli.handlers.repos.input")
     mocker.patch(
         "sys.argv",
         ["github-rest-cli", "repo", "delete", "--name", "my-repo", "--yes"],

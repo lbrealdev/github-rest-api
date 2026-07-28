@@ -27,7 +27,7 @@ def test_build_url_uses_default_api_url():
 
 def test_build_url_uses_custom_api_url(mocker):
     mocker.patch(
-        "github_rest_cli.api.get_api_url",
+        "github_rest_cli.api.base.get_api_url",
         return_value="https://github.example.com/api/v3",
     )
 

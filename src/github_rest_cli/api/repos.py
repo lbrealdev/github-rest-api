@@ -1,62 +1,13 @@
-import requests
-
-from github_rest_cli.globals import get_api_url, get_headers
+from github_rest_cli.api import base
 from github_rest_cli.utils import format_repo_get, format_repo_list, rich_output
 
 
-def request_with_handling(
-    method, url, success_msg: str | None = None, error_msg: str | None = None, **kwargs
-):
-    try:
-        response = requests.request(method, url, **kwargs)
-        response.raise_for_status()
-        if success_msg:
-            rich_output(success_msg)
-        else:
-            return response
-    except requests.exceptions.HTTPError as e:
-        status = e.response.status_code
-        if error_msg and status in error_msg:
-            rich_output(error_msg[status], format_str="bold red")
-        else:
-            rich_output(f"Request failed: status code {status}", format_str="bold red")
-        return None
-    except requests.exceptions.RequestException as e:
-        rich_output(f"Request error: {e}", format_str="bold red")
-        return None
-
-
-def build_url(*segments: str) -> str:
-    """
-    Build an GitHub REST API endpoint
-
-    Example:
-      build_url("repos", "org", "repo", "environments", "prod")
-
-    Result:
-      https://api.github.com/repos/org/repo/environments/prod
-    """
-    base = get_api_url()
-    path = "/".join(segment.strip("/") for segment in segments)
-    return f"{base}/{path}"
-
-
-def fetch_user() -> str:
-    headers = get_headers()
-    url = build_url("user")
-    response = request_with_handling("GET", url, headers=headers)
-    if response:
-        data = response.json()
-        return data.get("login")
-    return None
-
-
 def get_repository(name: str, org: str | None = None, output_format: str = "table"):
-    owner = org if org else fetch_user()
-    headers = get_headers()
-    url = build_url("repos", owner, name)
+    owner = org if org else base.fetch_user()
+    headers = base.get_headers()
+    url = base.build_url("repos", owner, name)
 
-    response = request_with_handling(
+    response = base.request_with_handling(
         "GET",
         url,
         headers=headers,
@@ -75,27 +26,32 @@ def get_repository(name: str, org: str | None = None, output_format: str = "tabl
 def list_repositories(
     per_page: int,
     page: int,
-    property: str,
+    sort: str,
     role: str,
     output_format: str,
     fetch_all: bool = False,
+    org: str | None = None,
 ):
-    headers = get_headers()
-    url = build_url("user", "repos")
+    headers = base.get_headers()
+    url = (
+        base.build_url("orgs", org, "repos") if org else base.build_url("user", "repos")
+    )
     start_page = 1 if fetch_all else page
-    params = {"per_page": per_page, "page": start_page, "sort": property}
+    params = {"per_page": per_page, "page": start_page, "sort": sort}
     if role:
         params["type"] = role
 
+    error_msg = {401: "Unauthorized access. Please check your token or credentials."}
+    if org:
+        error_msg[404] = "The requested organization does not exist."
+
     if not fetch_all:
-        response = request_with_handling(
+        response = base.request_with_handling(
             "GET",
             url,
             params=params,
             headers=headers,
-            error_msg={
-                401: "Unauthorized access. Please check your token or credentials."
-            },
+            error_msg=error_msg,
         )
         if not response:
             return None
@@ -106,14 +62,12 @@ def list_repositories(
     next_params = params
 
     while next_url:
-        response = request_with_handling(
+        response = base.request_with_handling(
             "GET",
             next_url,
             params=next_params,
             headers=headers,
-            error_msg={
-                401: "Unauthorized access. Please check your token or credentials."
-            },
+            error_msg=error_msg,
         )
         if not response:
             return None
@@ -178,11 +132,15 @@ def create_repository(
     if empty:
         payload["auto_init"] = False
 
-    owner = org if org else fetch_user()
-    headers = get_headers()
-    url = build_url("orgs", owner, "repos") if org else build_url("user", "repos")
+    owner = org if org else base.fetch_user()
+    headers = base.get_headers()
+    url = (
+        base.build_url("orgs", owner, "repos")
+        if org
+        else base.build_url("user", "repos")
+    )
 
-    return request_with_handling(
+    return base.request_with_handling(
         "POST",
         url,
         headers=headers,
@@ -219,7 +177,7 @@ def _create_repository_from_template(
         return None
 
     template_owner, template_repo = parsed
-    owner = org if org else fetch_user()
+    owner = org if org else base.fetch_user()
     if not owner:
         return None
 
@@ -230,10 +188,10 @@ def _create_repository_from_template(
         "include_all_branches": include_all_branches,
     }
 
-    headers = get_headers()
-    url = build_url("repos", template_owner, template_repo, "generate")
+    headers = base.get_headers()
+    url = base.build_url("repos", template_owner, template_repo, "generate")
 
-    return request_with_handling(
+    return base.request_with_handling(
         "POST",
         url,
         headers=headers,
@@ -289,15 +247,15 @@ def update_repository(
         )
         return None
 
-    owner = org if org else fetch_user()
+    owner = org if org else base.fetch_user()
     if not owner:
         return None
 
-    headers = get_headers()
-    url = build_url("repos", owner, name)
+    headers = base.get_headers()
+    url = base.build_url("repos", owner, name)
     result_name = new_name if new_name is not None else name
 
-    return request_with_handling(
+    return base.request_with_handling(
         "PATCH",
         url,
         headers=headers,
@@ -312,11 +270,11 @@ def update_repository(
 
 
 def delete_repository(name: str, org: str | None = None):
-    owner = org if org else fetch_user()
-    headers = get_headers()
-    url = build_url("repos", owner, name)
+    owner = org if org else base.fetch_user()
+    headers = base.get_headers()
+    url = base.build_url("repos", owner, name)
 
-    return request_with_handling(
+    return base.request_with_handling(
         "DELETE",
         url,
         headers=headers,
@@ -325,49 +283,4 @@ def delete_repository(name: str, org: str | None = None):
             403: "The authenticated user does not have sufficient permissions to delete this repository.",
             404: "The requested repository does not exist.",
         },
-    )
-
-
-def dependabot_security(name: str, enabled: bool, org: str | None = None):
-    is_enabled = bool(enabled)
-
-    owner = org if org else fetch_user()
-    headers = get_headers()
-    url = build_url("repos", owner, name)
-    security_urls = ["vulnerability-alerts", "automated-security-fixes"]
-
-    if is_enabled:
-        for endpoint in security_urls:
-            full_url = f"{url}/{endpoint}"
-            request_with_handling(
-                "PUT",
-                url=full_url,
-                headers=headers,
-                success_msg=f"Enabled {endpoint}",
-                error_msg={
-                    401: "Unauthorized. Please check your credentials.",
-                },
-            )
-    else:
-        full_url = f"{url}/{security_urls[0]}"
-        request_with_handling(
-            "DELETE",
-            url=full_url,
-            headers=headers,
-            success_msg=f"Dependabot has been disabled on repository {owner}/{name}.",
-            error_msg={401: "Unauthorized. Please check your credentials."},
-        )
-
-
-def deployment_environment(name: str, env: str, org: str | None = None):
-    owner = org if org else fetch_user()
-    headers = get_headers()
-    url = build_url("repos", owner, name, "environments", env)
-
-    return request_with_handling(
-        "PUT",
-        url,
-        headers=headers,
-        success_msg=f"Environment {env} has been created successfully in {owner}/{name}.",
-        error_msg={422: f"Failed to create repository environment {owner}/{name}."},
     )

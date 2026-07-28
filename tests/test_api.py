@@ -1,8 +1,30 @@
 from github_rest_cli import api
 
-GET_HEADERS_FUNCTION = "github_rest_cli.api.get_headers"
-FETCH_USER_FUNCTION = "github_rest_cli.api.fetch_user"
-REQUEST_HANDLER_FUNCTION = "github_rest_cli.api.request_with_handling"
+BACKWARD_COMPATIBLE_EXPORTS = [
+    "build_url",
+    "create_repository",
+    "delete_environment",
+    "delete_repository",
+    "dependabot_security",
+    "deployment_environment",
+    "fetch_user",
+    "get_environment",
+    "get_repository",
+    "list_environments",
+    "list_repositories",
+    "request_with_handling",
+    "update_repository",
+]
+
+GET_HEADERS_FUNCTION = "github_rest_cli.api.base.get_headers"
+FETCH_USER_FUNCTION = "github_rest_cli.api.base.fetch_user"
+REQUEST_HANDLER_FUNCTION = "github_rest_cli.api.base.request_with_handling"
+
+
+def test_api_package_reexports_public_functions():
+    """The api package split must keep `from github_rest_cli.api import X` working."""
+    for name in BACKWARD_COMPATIBLE_EXPORTS:
+        assert callable(getattr(api, name)), name
 
 
 def test_fetch_user(mocker):
@@ -142,6 +164,63 @@ def test_list_repositories_passes_page_params(mocker):
         "sort": "updated",
         "type": "owner",
     }
+
+
+def test_list_repositories_uses_org_endpoint(mocker):
+    mocker.patch(GET_HEADERS_FUNCTION, return_value={"Authorization": "token fake"})
+    fetch_user = mocker.patch(FETCH_USER_FUNCTION, return_value="test-user")
+    mock_response = mocker.Mock()
+    mock_response.status_code = 200
+    mock_response.json.return_value = [SAMPLE_REPO]
+    mock_response.links = {}
+    request_mock = mocker.patch(REQUEST_HANDLER_FUNCTION, return_value=mock_response)
+
+    api.list_repositories(20, 1, "pushed", None, "json", org="my-org")
+
+    fetch_user.assert_not_called()
+    assert request_mock.call_args.args[1].endswith("/orgs/my-org/repos")
+    assert request_mock.call_args.kwargs["error_msg"][404] == (
+        "The requested organization does not exist."
+    )
+
+
+def test_list_repositories_without_org_uses_user_endpoint(mocker):
+    mocker.patch(GET_HEADERS_FUNCTION, return_value={"Authorization": "token fake"})
+    mock_response = mocker.Mock()
+    mock_response.status_code = 200
+    mock_response.json.return_value = [SAMPLE_REPO]
+    mock_response.links = {}
+    request_mock = mocker.patch(REQUEST_HANDLER_FUNCTION, return_value=mock_response)
+
+    api.list_repositories(20, 1, "pushed", None, "json")
+
+    assert request_mock.call_args.args[1].endswith("/user/repos")
+    assert 404 not in request_mock.call_args.kwargs["error_msg"]
+
+
+def test_list_repositories_org_fetch_all_follows_link_headers(mocker):
+    mocker.patch(GET_HEADERS_FUNCTION, return_value={"Authorization": "token fake"})
+
+    first = mocker.Mock()
+    first.status_code = 200
+    first.json.return_value = [SAMPLE_REPO]
+    first.links = {"next": {"url": "https://api.github.com/orgs/my-org/repos?page=2"}}
+
+    second = mocker.Mock()
+    second.status_code = 200
+    second.json.return_value = []
+    second.links = {}
+
+    request_mock = mocker.patch(REQUEST_HANDLER_FUNCTION, side_effect=[first, second])
+
+    api.list_repositories(20, 1, "pushed", None, "json", fetch_all=True, org="my-org")
+
+    assert request_mock.call_count == 2
+    assert request_mock.call_args_list[0].args[1].endswith("/orgs/my-org/repos")
+    assert (
+        request_mock.call_args_list[1].args[1]
+        == "https://api.github.com/orgs/my-org/repos?page=2"
+    )
 
 
 def test_list_repositories_fetch_all_follows_link_headers(mocker):

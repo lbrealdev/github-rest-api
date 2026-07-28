@@ -1,6 +1,10 @@
 from github_rest_cli.utils import (
+    format_environment_get,
+    format_environment_list,
     format_repo_get,
     format_repo_list,
+    project_environment_detail,
+    project_environment_summary,
     project_repo_detail,
     project_repo_summary,
 )
@@ -107,3 +111,84 @@ def test_format_repo_list_json_is_projected():
     assert '"repositories"' in result
     assert '"owner": "test-user"' in result
     assert '"login"' not in result
+
+
+SAMPLE_ENVIRONMENT = {
+    "id": 161088068,
+    "node_id": "MDExOkVudmlyb25tZW50",
+    "name": "production",
+    "url": "https://api.github.com/repos/test-user/test-repo/environments/production",
+    "html_url": "https://github.com/test-user/test-repo/deployments",
+    "created_at": "2024-01-01T00:00:00Z",
+    "updated_at": "2024-06-01T00:00:00Z",
+    "protection_rules": [{"type": "wait_timer"}, {"type": "required_reviewers"}],
+    "deployment_branch_policy": {
+        "protected_branches": True,
+        "custom_branch_policies": False,
+    },
+}
+
+
+def test_project_environment_summary():
+    assert project_environment_summary(SAMPLE_ENVIRONMENT) == {
+        "name": "production",
+        "id": 161088068,
+        "protection_rules": "wait_timer, required_reviewers",
+        "created_at": "2024-01-01T00:00:00Z",
+        "updated_at": "2024-06-01T00:00:00Z",
+    }
+
+
+def test_project_environment_detail_ordered_fields():
+    pairs = project_environment_detail(SAMPLE_ENVIRONMENT)
+    fields = [field for field, _ in pairs]
+
+    assert fields == [
+        "name",
+        "id",
+        "node_id",
+        "url",
+        "html_url",
+        "created_at",
+        "updated_at",
+        "protection_rules",
+        "deployment_branch_policy",
+    ]
+    assert dict(pairs)["deployment_branch_policy"] == "protected_branches"
+    assert dict(pairs)["id"] == "161088068"
+
+
+def test_project_environment_detail_null_and_missing_fields():
+    values = dict(project_environment_detail({"name": "staging"}))
+
+    assert values["name"] == "staging"
+    assert values["protection_rules"] == ""
+    assert values["deployment_branch_policy"] == ""
+    assert values["html_url"] == ""
+
+
+def test_format_environment_list_json_is_raw():
+    result = format_environment_list(
+        {"total_count": 1, "environments": [SAMPLE_ENVIRONMENT]}, "json"
+    )
+    assert '"total_count": 1' in result
+    assert '"node_id"' in result
+
+
+def test_format_environment_list_table_is_summary():
+    table_text = str(
+        format_environment_list(
+            {"total_count": 1, "environments": [SAMPLE_ENVIRONMENT]}
+        )
+    )
+    assert "GITHUB ENVIRONMENTS" in table_text.upper()
+    assert "production" in table_text
+    assert "node_id" not in table_text
+
+
+def test_format_environment_get_table_is_key_value():
+    table_text = str(format_environment_get(SAMPLE_ENVIRONMENT))
+    assert "GITHUB ENVIRONMENT" in table_text.upper()
+    assert "FIELD" in table_text.upper()
+    assert "VALUE" in table_text.upper()
+    assert "node_id" in table_text

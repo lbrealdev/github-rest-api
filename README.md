@@ -4,7 +4,7 @@
 [![Python CI](https://github.com/lbrealdev/github-rest-cli/actions/workflows/python-ci.yml/badge.svg)](https://github.com/lbrealdev/github-rest-cli/actions/workflows/python-ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-A Python CLI for common [GitHub REST API](https://docs.github.com/en/rest) operations—list and inspect repositories, create, update, or delete them, manage Dependabot security settings, and create deployment environments.
+A Python CLI for common [GitHub REST API](https://docs.github.com/en/rest) operations—list and inspect repositories for a user or an organization, create, update, or delete them, manage Dependabot security settings, and manage deployment environments.
 
 ## Installation
 
@@ -43,6 +43,9 @@ github-rest-cli repo create --name my-app --template owner/template-repo
 github-rest-cli repo update --name my-repo --description "Updated"
 github-rest-cli repo update --name my-repo --new-name renamed-repo
 github-rest-cli repo update --name my-repo --as-template
+github-rest-cli repo list --org my-org
+github-rest-cli environment list --name my-repo
+github-rest-cli environment get --name my-repo --env production
 ```
 
 ## Commands
