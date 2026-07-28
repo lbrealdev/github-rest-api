@@ -253,6 +253,7 @@ List the deployment environments of a repository.
 github-rest-cli environment list --name my-repo
 github-rest-cli environment list --name my-repo --org my-org
 github-rest-cli environment list --name my-repo --per-page 50 --page 2
+github-rest-cli environment list --name my-repo --all --format json
 github-rest-cli environment list --name my-repo --format json
 ```
 
@@ -261,7 +262,8 @@ github-rest-cli environment list --name my-repo --format json
 | `-n` / `--name` | Yes | — | Repository name |
 | `-o` / `--org` | No | authenticated user | Organization owner |
 | `--per-page` | No | `20` | Results per page (`per_page`, max 100) |
-| `-p` / `--page` | No | `1` | Page number to fetch |
+| `-p` / `--page` | No | `1` | Page number to fetch (ignored with `--all`) |
+| `--all` | No | off | Fetch every page by following `Link` headers |
 | `-f` / `--format` | No | `table` | Output format: `table` or `json` |
 
 Table mode shows the summary fields `name`, `id`, `protection_rules`, `created_at`, `updated_at`, where `protection_rules` lists the configured rule types. JSON mode returns the full API payload, including `total_count`.

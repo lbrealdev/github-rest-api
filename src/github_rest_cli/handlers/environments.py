@@ -19,6 +19,7 @@ def run_environment_list(args: Namespace) -> None:
         args.format,
         per_page=args.per_page,
         page=args.page,
+        fetch_all=args.fetch_all,
     )
     if environments is not None:
         print(environments)  # noqa: T201

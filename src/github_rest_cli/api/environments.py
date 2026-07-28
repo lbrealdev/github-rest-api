@@ -22,26 +22,54 @@ def list_environments(
     output_format: str = "table",
     per_page: int = 20,
     page: int = 1,
+    fetch_all: bool = False,
 ):
     owner = org if org else base.fetch_user()
     headers = base.get_headers()
     url = base.build_url("repos", owner, name, "environments")
+    start_page = 1 if fetch_all else page
+    params = {"per_page": per_page, "page": start_page}
+    error_msg = {
+        401: "Unauthorized access. Please check your token or credentials.",
+        404: "The requested repository does not exist.",
+    }
 
-    response = base.request_with_handling(
-        "GET",
-        url,
-        params={"per_page": per_page, "page": page},
-        headers=headers,
-        error_msg={
-            401: "Unauthorized access. Please check your token or credentials.",
-            404: "The requested repository does not exist.",
-        },
+    if not fetch_all:
+        response = base.request_with_handling(
+            "GET",
+            url,
+            params=params,
+            headers=headers,
+            error_msg=error_msg,
+        )
+        if not response:
+            return None
+        return format_environment_list(response.json(), output_format)
+
+    environments = []
+    next_url = url
+    next_params = params
+
+    while next_url:
+        response = base.request_with_handling(
+            "GET",
+            next_url,
+            params=next_params,
+            headers=headers,
+            error_msg=error_msg,
+        )
+        if not response:
+            return None
+
+        payload = response.json()
+        environments.extend(payload.get("environments") or [])
+        next_url = response.links.get("next", {}).get("url")
+        next_params = None
+
+    return format_environment_list(
+        {"total_count": len(environments), "environments": environments},
+        output_format,
     )
-
-    if not response:
-        return None
-
-    return format_environment_list(response.json(), output_format)
 
 
 def get_environment(

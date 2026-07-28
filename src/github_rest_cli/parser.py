@@ -371,7 +371,15 @@ def build_parser() -> argparse.ArgumentParser:
         help="List deployment environments",
     )
     _add_repo_name_args(environment_list_parser)
-    _add_pagination_args(environment_list_parser)
+    _add_pagination_args(
+        environment_list_parser, page_help="Page number to fetch (ignored with --all)"
+    )
+    environment_list_parser.add_argument(
+        "--all",
+        action="store_true",
+        dest="fetch_all",
+        help="Fetch all pages (follows Link headers)",
+    )
     _add_format_arg(environment_list_parser)
     environment_list_parser.set_defaults(func=run_environment_list)
 

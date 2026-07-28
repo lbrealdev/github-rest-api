@@ -76,6 +76,60 @@ def test_list_environments_pagination_params(mocker):
     assert request_mock.call_args.kwargs["params"] == {"per_page": 50, "page": 2}
 
 
+def test_list_environments_fetch_all_follows_link_headers(mocker):
+    mocker.patch(GET_HEADERS_FUNCTION, return_value={"Authorization": "token fake"})
+    mocker.patch(FETCH_USER_FUNCTION, return_value="test-user")
+
+    page1 = {
+        "total_count": 2,
+        "environments": [
+            {**SAMPLE_ENVIRONMENT, "name": "production"},
+        ],
+    }
+    page2 = {
+        "total_count": 2,
+        "environments": [
+            {**SAMPLE_ENVIRONMENT, "id": 2, "name": "staging"},
+        ],
+    }
+
+    first = mocker.Mock()
+    first.status_code = 200
+    first.json.return_value = page1
+    first.links = {
+        "next": {
+            "url": "https://api.github.com/repos/test-user/my-repo/environments?page=2"
+        }
+    }
+
+    second = mocker.Mock()
+    second.status_code = 200
+    second.json.return_value = page2
+    second.links = {}
+
+    request_mock = mocker.patch(REQUEST_HANDLER_FUNCTION, side_effect=[first, second])
+
+    result = api.list_environments(
+        "my-repo", per_page=1, page=5, fetch_all=True, output_format="json"
+    )
+
+    assert request_mock.call_count == 2
+    _, first_kwargs = request_mock.call_args_list[0]
+    assert first_kwargs["params"]["page"] == 1
+    assert first_kwargs["params"]["per_page"] == 1
+
+    second_args, second_kwargs = request_mock.call_args_list[1]
+    assert (
+        second_args[1]
+        == "https://api.github.com/repos/test-user/my-repo/environments?page=2"
+    )
+    assert second_kwargs["params"] is None
+
+    assert '"name": "production"' in result
+    assert '"name": "staging"' in result
+    assert '"total_count": 2' in result
+
+
 def test_list_environments_org(mocker):
     request_mock = _mock_environment_response(mocker, SAMPLE_ENVIRONMENT_LIST)
 
@@ -183,7 +237,29 @@ def test_environment_list_subcommand_parses():
     assert args.org == "my-org"
     assert args.per_page == 20
     assert args.page == 1
+    assert args.fetch_all is False
     assert args.format == "table"
+
+
+def test_environment_list_all_flag_parses():
+    parser = build_parser()
+    args = parser.parse_args(
+        [
+            "environment",
+            "list",
+            "--name",
+            "my-repo",
+            "--per-page",
+            "50",
+            "--page",
+            "3",
+            "--all",
+        ]
+    )
+
+    assert args.per_page == 50
+    assert args.page == 3
+    assert args.fetch_all is True
 
 
 def test_environment_list_requires_name():

@@ -28,7 +28,7 @@ def request_with_handling(
 
 def build_url(*segments: str) -> str:
     """
-    Build an GitHub REST API endpoint
+    Build a GitHub REST API endpoint
 
     Example:
       build_url("repos", "org", "repo", "environments", "prod")
@@ -41,7 +41,7 @@ def build_url(*segments: str) -> str:
     return f"{base}/{path}"
 
 
-def fetch_user() -> str:
+def fetch_user() -> str | None:
     headers = get_headers()
     url = build_url("user")
     response = request_with_handling("GET", url, headers=headers)
