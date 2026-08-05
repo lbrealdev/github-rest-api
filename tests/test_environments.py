@@ -149,9 +149,9 @@ def test_list_environments_returns_none_on_error(mocker):
 def test_list_environments_empty_payload(mocker):
     _mock_environment_response(mocker, {"total_count": 0, "environments": []})
 
-    table_text = str(api.list_environments("my-repo"))
+    result = api.list_environments("my-repo")
 
-    assert "GITHUB ENVIRONMENTS" in table_text.upper()
+    assert result == "No environments found."
 
 
 def test_get_environment_table_format(mocker):
