@@ -113,6 +113,14 @@ def test_format_repo_list_json_is_projected():
     assert '"login"' not in result
 
 
+def test_format_repo_list_empty_table_message():
+    assert format_repo_list([], "table") == "No repositories found."
+
+
+def test_format_repo_list_empty_json_unchanged():
+    assert format_repo_list([], "json") == '{\n  "repositories": []\n}'
+
+
 SAMPLE_ENVIRONMENT = {
     "id": 161088068,
     "node_id": "MDExOkVudmlyb25tZW50",
@@ -184,6 +192,20 @@ def test_format_environment_list_table_is_summary():
     assert "GITHUB ENVIRONMENTS" in table_text.upper()
     assert "production" in table_text
     assert "node_id" not in table_text
+
+
+def test_format_environment_list_empty_table_message():
+    assert (
+        format_environment_list({"total_count": 0, "environments": []}, "table")
+        == "No environments found."
+    )
+
+
+def test_format_environment_list_empty_json_unchanged():
+    payload = {"total_count": 0, "environments": []}
+    assert format_environment_list(payload, "json") == (
+        '{\n  "total_count": 0,\n  "environments": []\n}'
+    )
 
 
 def test_format_environment_get_table_is_key_value():

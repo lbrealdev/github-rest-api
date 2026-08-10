@@ -155,6 +155,9 @@ def project_environment_detail(environment: dict) -> list[tuple[str, str]]:
 
 
 def format_repo_list(repos, output_format: str = "table"):
+    if not repos and output_format == "table":
+        return "No repositories found."
+
     summaries = [project_repo_summary(repo) for repo in repos]
 
     if output_format == "json":
@@ -177,6 +180,9 @@ def format_environment_list(payload, output_format: str = "table"):
         return to_json(payload)
 
     environments = payload.get("environments") or []
+    if not environments:
+        return "No environments found."
+
     summaries = [project_environment_summary(env) for env in environments]
     rows = [
         [_stringify(s[column]) for column in ENVIRONMENT_SUMMARY_COLUMNS]
