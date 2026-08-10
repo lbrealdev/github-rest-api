@@ -4,7 +4,7 @@
 [![Python CI](https://github.com/lbrealdev/github-rest-cli/actions/workflows/python-ci.yml/badge.svg)](https://github.com/lbrealdev/github-rest-cli/actions/workflows/python-ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-A Python CLI for common [GitHub REST API](https://docs.github.com/en/rest) operations—list and inspect repositories for a user or an organization, create, update, or delete them, manage Dependabot security settings, and manage deployment environments.
+A Python CLI for common [GitHub REST API](https://docs.github.com/en/rest) operations: list and inspect repositories for a user or an organization, create, update, or delete them, manage Dependabot security settings, and manage deployment environments.
 
 ## Installation
 

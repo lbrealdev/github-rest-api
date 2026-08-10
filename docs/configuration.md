@@ -66,7 +66,7 @@ Matching sections in the files (for example `[development]`) are used when `SET_
 
 ### Security notes
 
-- Prefer `.secrets.toml` or `GITHUB_AUTH_TOKEN` for tokens — never commit PATs.
+- Prefer `.secrets.toml` or `GITHUB_AUTH_TOKEN` for tokens. Never commit PATs.
 - `.secrets.*` is listed in `.gitignore`.
 - Files are read from the process **current working directory**, not necessarily the package install location.
 
